@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Chat App</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        .input-focus:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .floating-shapes {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+        .shape {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+        .shape:nth-child(1) {
+            width: 80px;
+            height: 80px;
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+        .shape:nth-child(2) {
+            width: 120px;
+            height: 120px;
+            top: 20%;
+            right: 10%;
+            animation-delay: 2s;
+        }
+        .shape:nth-child(3) {
+            width: 60px;
+            height: 60px;
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 4s;
+        }
+        .shape:nth-child(4) {
+            width: 100px;
+            height: 100px;
+            bottom: 10%;
+            right: 20%;
+            animation-delay: 1s;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-20px) rotate(120deg); }
+            66% { transform: translateY(10px) rotate(240deg); }
+        }
+        .strength-meter {
+            height: 4px;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        .strength-weak { background-color: #ef4444; width: 25%; }
+        .strength-fair { background-color: #f97316; width: 50%; }
+        .strength-good { background-color: #eab308; width: 75%; }
+        .strength-strong { background-color: #22c55e; width: 100%; }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center relative">
+    <!-- Floating Shapes Background -->
+    <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+
+    <div class="max-w-md w-full mx-4 relative z-10">
+        <!-- Logo/Brand Section -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full shadow-lg mb-4">
+                <i data-feather="message-circle" class="w-8 h-8 text-blue-500"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-white mb-2">Chat App</h1>
+            <p class="text-white text-opacity-80">Join the conversation today</p>
+        </div>
+
+        <!-- Register Form Card -->
+        <div class="glass-effect p-8 rounded-2xl shadow-2xl border border-white border-opacity-20">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Create Account</h2>
+                <p class="text-gray-600">Start chatting with friends in seconds</p>
+            </div>
+
+            <form method="post" class="space-y-6" id="register-form">
+                {% csrf_token %}
+                
+                <!-- Username Field -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i data-feather="user" class="w-4 h-4 inline mr-2"></i>
+                        Username
+                    </label>
+                    <div class="relative">
+                        <input type="text" name="{{ form.username.name }}" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus transition-all duration-200 pl-12"
+                               placeholder="Choose a unique username"
+                               value="{{ form.username.value|default:'' }}"
+                               id="username-field">
+                        <i data-feather="user" class="w-5 h-5 absolute left-4 top-3.5 text-gray-400"></i>
+                        <div class="absolute right-4 top-3.5" id="username-check">
+                            <!-- Username availability indicator will appear here -->
+                        </div>
+                    </div>
+                    {% if form.username.errors %}
+                        <div class="flex items-center mt-2 text-red-500 text-sm">
+                            <i data-feather="alert-circle" class="w-4 h-4 mr-1"></i>
+                            {{ form.username.errors.0 }}
+                        </div>
+                    {% endif %}
+                    <p class="text-xs text-gray-500 mt-1">Username must be 3-30 characters long</p>
+                </div>
+
+                <!-- Password Field -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i data-feather="lock" class="w-4 h-4 inline mr-2"></i>
+                        Password
+                    </label>
+                    <div class="relative">
+                        <input type="password" name="{{ form.password1.name }}" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus transition-all duration-200 pl-12 pr-12"
+                               placeholder="Create a strong password"
+                               id="password1-field">
+                        <i data-feather="lock" class="w-5 h-5 absolute left-4 top-3.5 text-gray-400"></i>
+                        <button type="button" id="toggle-password1" class="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors">
+                            <i data-feather="eye" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <!-- Password Strength Meter -->
+                    <div class="mt-2">
+                        <div class="flex justify-between text-xs text-gray-500 mb-1">
+                            <span>Password Strength:</span>
+                            <span id="strength-text">Weak</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-1">
+                            <div class="strength-meter strength-weak" id="strength-bar"></div>
+                        </div>
+                    </div>
+                    {% if form.password1.errors %}
+                        <div class="flex items-center mt-2 text-red-500 text-sm">
+                            <i data-feather="alert-circle" class="w-4 h-4 mr-1"></i>
+                            {{ form.password1.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Confirm Password Field -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i data-feather="shield" class="w-4 h-4 inline mr-2"></i>
+                        Confirm Password
+                    </label>
+                    <div class="relative">
+                        <input type="password" name="{{ form.password2.name }}" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus transition-all duration-200 pl-12 pr-12"
+                               placeholder="Confirm your password"
+                               id="password2-field">
+                        <i data-feather="shield" class="w-5 h-5 absolute left-4 top-3.5 text-gray-400"></i>
+                        <button type="button" id="toggle-password2" class="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors">
+                            <i data-feather="eye" class="w-5 h-5"></i>
+                        </button>
+                        <div class="absolute right-12 top-3.5" id="password-match">
+                            <!-- Password match indicator will appear here -->
+                        </div>
+                    </div>
+                    {% if form.password2.errors %}
+                        <div class="flex items-center mt-2 text-red-500 text-sm">
+                            <i data-feather="alert-circle" class="w-4 h-4 mr-1"></i>
+                            {{ form.password2.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+              
+
+                <!-- Submit Button -->
+                <button type="submit" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-lg" id="submit-btn">
+                    <div class="flex items-center justify-center">
+                        <i data-feather="user-plus" class="w-5 h-5 mr-2"></i>
+                        Create Account
+                    </div>
+                </button>
+            </form>
+
+            <!-- Divider -->
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-300"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-4 bg-white text-gray-500">Already have an account?</span>
+                </div>
+            </div>
+
+            <!-- Login Link -->
+            <div class="text-center">
+                <a href="{% url 'login' %}" class="inline-flex items-center justify-center w-full py-3 px-4 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                    <i data-feather="log-in" class="w-5 h-5 mr-2"></i>
+                    Sign In Instead
+                </a>
+            </div>
+        </div>
+
+        
+    </div>
+
+    <script>
+        // Initialize Feather icons
+        feather.replace();
+
+        // Password visibility toggles
+        function setupPasswordToggle(toggleId, fieldId) {
+            const toggle = document.getElementById(toggleId);
+            const field = document.getElementById(fieldId);
+            
+            toggle.addEventListener('click', function() {
+                const type = field.getAttribute('type') === 'password' ? 'text' : 'password';
+                field.setAttribute('type', type);
+                
+                const icon = this.querySelector('i');
+                if (type === 'password') {
+                    icon.setAttribute('data-feather', 'eye');
+                } else {
+                    icon.setAttribute('data-feather', 'eye-off');
+                }
+                feather.replace();
+            });
+        }
+
+        setupPasswordToggle('toggle-password1', 'password1-field');
+        setupPasswordToggle('toggle-password2', 'password2-field');
+
+        // Password strength checker
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            let text = 'Weak';
+            let className = 'strength-weak';
+
+            if (password.length >= 8) strength += 1;
+            if (/[a-z]/.test(password)) strength += 1;
+            if (/[A-Z]/.test(password)) strength += 1;
+            if (/[0-9]/.test(password)) strength += 1;
+            if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+
+            if (strength >= 4) {
+                text = 'Strong';
+                className = 'strength-strong';
+            } else if (strength >= 3) {
+                text = 'Good';
+                className = 'strength-good';
+            } else if (strength >= 2) {
+                text = 'Fair';
+                className = 'strength-fair';
+            }
+
+            return { text, className };
+        }
+
+        const password1Field = document.getElementById('password1-field');
+        const strengthText = document.getElementById('strength-text');
+        const strengthBar = document.getElementById('strength-bar');
+
+        password1Field.addEventListener('input', function() {
+            const { text, className } = checkPasswordStrength(this.value);
+            strengthText.textContent = text;
+            strengthBar.className = `strength-meter ${className}`;
+        });
+
+        // Password match checker
+        const password2Field = document.getElementById('password2-field');
+        const passwordMatch = document.getElementById('password-match');
+
+        function checkPasswordMatch() {
+            if (password2Field.value.length > 0) {
+                if (password1Field.value === password2Field.value) {
+                    passwordMatch.innerHTML = '<i data-feather="check" class="w-5 h-5 text-green-500"></i>';
+                } else {
+                    passwordMatch.innerHTML = '<i data-feather="x" class="w-5 h-5 text-red-500"></i>';
+                }
+                feather.replace();
+            } else {
+                passwordMatch.innerHTML = '';
+            }
+        }
+
+        password1Field.addEventListener('input', checkPasswordMatch);
+        password2Field.addEventListener('input', checkPasswordMatch);
+
+        // Username availability checker (mock)
+        const usernameField = document.getElementById('username-field');
+        const usernameCheck = document.getElementById('username-check');
+
+        usernameField.addEventListener('input', function() {
+            if (this.value.length >= 3) {
+                // Simulate API call
+                setTimeout(() => {
+                    if (this.value.toLowerCase() === 'admin' || this.value.toLowerCase() === 'test') {
+                        usernameCheck.innerHTML = '<i data-feather="x" class="w-5 h-5 text-red-500"></i>';
+                    } else {
+                        usernameCheck.innerHTML = '<i data-feather="check" class="w-5 h-5 text-green-500"></i>';
+                    }
+                    feather.replace();
+                }, 500);
+            } else {
+                usernameCheck.innerHTML = '';
+            }
+        });
+
+        // Form submission
+        const form = document.getElementById('register-form');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        form.addEventListener('submit', function(e) {
+            const termsCheckbox = document.getElementById('terms');
+            if (!termsCheckbox.checked) {
+                e.preventDefault();
+                alert('Please agree to the Terms of Service and Privacy Policy');
+                return;
+            }
+
+            submitBtn.innerHTML = `
+                <div class="flex items-center justify-center">
+                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Creating Account...
+                </div>
+            `;
+            submitBtn.disabled = true;
+        });
+    </script>
+</body>
+</html>

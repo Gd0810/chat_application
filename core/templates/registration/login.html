@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Chat App</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        .input-focus:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .floating-shapes {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+        .shape {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+        .shape:nth-child(1) {
+            width: 80px;
+            height: 80px;
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+        .shape:nth-child(2) {
+            width: 120px;
+            height: 120px;
+            top: 20%;
+            right: 10%;
+            animation-delay: 2s;
+        }
+        .shape:nth-child(3) {
+            width: 60px;
+            height: 60px;
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 4s;
+        }
+        .shape:nth-child(4) {
+            width: 100px;
+            height: 100px;
+            bottom: 10%;
+            right: 20%;
+            animation-delay: 1s;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-20px) rotate(120deg); }
+            66% { transform: translateY(10px) rotate(240deg); }
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center relative">
+    <!-- Floating Shapes Background -->
+    <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+
+    <div class="max-w-md w-full mx-4 relative z-10">
+        <!-- Logo/Brand Section -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full shadow-lg mb-4">
+                <i data-feather="message-circle" class="w-8 h-8 text-blue-500"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-white mb-2">Chat App</h1>
+            <p class="text-white text-opacity-80">Connect with friends instantly</p>
+        </div>
+
+        <!-- Login Form Card -->
+        <div class="glass-effect p-8 rounded-2xl shadow-2xl border border-white border-opacity-20">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Welcome Back</h2>
+                <p class="text-gray-600">Sign in to continue your conversations</p>
+            </div>
+
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Username Field -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i data-feather="user" class="w-4 h-4 inline mr-2"></i>
+                        Username
+                    </label>
+                    <div class="relative">
+                        <input type="text" name="{{ form.username.name }}" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus transition-all duration-200 pl-12"
+                               placeholder="Enter your username"
+                               value="{{ form.username.value|default:'' }}">
+                        <i data-feather="user" class="w-5 h-5 absolute left-4 top-3.5 text-gray-400"></i>
+                    </div>
+                    {% if form.username.errors %}
+                        <div class="flex items-center mt-2 text-red-500 text-sm">
+                            <i data-feather="alert-circle" class="w-4 h-4 mr-1"></i>
+                            {{ form.username.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Password Field -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i data-feather="lock" class="w-4 h-4 inline mr-2"></i>
+                        Password
+                    </label>
+                    <div class="relative">
+                        <input type="password" name="{{ form.password.name }}" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus transition-all duration-200 pl-12 pr-12"
+                               placeholder="Enter your password"
+                               id="password-field">
+                        <i data-feather="lock" class="w-5 h-5 absolute left-4 top-3.5 text-gray-400"></i>
+                        <button type="button" id="toggle-password" class="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors">
+                            <i data-feather="eye" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    {% if form.password.errors %}
+                        <div class="flex items-center mt-2 text-red-500 text-sm">
+                            <i data-feather="alert-circle" class="w-4 h-4 mr-1"></i>
+                            {{ form.password.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+               
+
+                <!-- Submit Button -->
+                <button type="submit" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-lg">
+                    <div class="flex items-center justify-center">
+                        <i data-feather="log-in" class="w-5 h-5 mr-2"></i>
+                        Sign In
+                    </div>
+                </button>
+            </form>
+
+            <!-- Divider -->
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-300"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-4 bg-white text-gray-500">New to Chat App?</span>
+                </div>
+            </div>
+
+            <!-- Register Link -->
+            <div class="text-center">
+                <a href="{% url 'register' %}" class="inline-flex items-center justify-center w-full py-3 px-4 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                    <i data-feather="user-plus" class="w-5 h-5 mr-2"></i>
+                    Create an Account
+                </a>
+            </div>
+        </div>
+
+       
+    </div>
+
+    <script>
+        // Initialize Feather icons
+        feather.replace();
+
+        // Password visibility toggle
+        const togglePassword = document.getElementById('toggle-password');
+        const passwordField = document.getElementById('password-field');
+        
+        togglePassword.addEventListener('click', function() {
+            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordField.setAttribute('type', type);
+            
+            const icon = this.querySelector('i');
+            if (type === 'password') {
+                icon.setAttribute('data-feather', 'eye');
+            } else {
+                icon.setAttribute('data-feather', 'eye-off');
+            }
+            feather.replace();
+        });
+
+        // Form validation and loading states
+        const form = document.querySelector('form');
+        const submitBtn = form.querySelector('button[type="submit"]');
+        
+        form.addEventListener('submit', function() {
+            submitBtn.innerHTML = `
+                <div class="flex items-center justify-center">
+                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Signing In...
+                </div>
+            `;
+            submitBtn.disabled = true;
+        });
+    </script>
+</body>
+</html>
