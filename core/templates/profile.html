@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Chat App</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        .input-focus:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .profile-image-container {
+            position: relative;
+            display: inline-block;
+        }
+        .image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            cursor: pointer;
+        }
+        .profile-image-container:hover .image-overlay {
+            opacity: 1;
+        }
+        .floating-shapes {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .shape {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            animation: float 8s ease-in-out infinite;
+        }
+        .shape:nth-child(1) {
+            width: 100px;
+            height: 100px;
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+        .shape:nth-child(2) {
+            width: 150px;
+            height: 150px;
+            top: 60%;
+            right: 10%;
+            animation-delay: 3s;
+        }
+        .shape:nth-child(3) {
+            width: 80px;
+            height: 80px;
+            bottom: 30%;
+            left: 20%;
+            animation-delay: 6s;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-30px) rotate(120deg); }
+            66% { transform: translateY(15px) rotate(240deg); }
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <!-- Floating Shapes Background -->
+    <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+
+    <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative z-10">
+        <div class="max-w-md w-full space-y-8">
+            <!-- Header Section -->
+            <div class="text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full shadow-lg mb-4">
+                    <i data-feather="user" class="w-8 h-8 text-blue-500"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-white mb-2">Your Profile</h1>
+                <p class="text-white text-opacity-80">Manage your account settings</p>
+            </div>
+
+            <!-- Profile Card -->
+            <div class="glass-effect rounded-2xl shadow-2xl border border-white border-opacity-20 overflow-hidden">
+                <!-- Profile Header -->
+                <div class="bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-center relative">
+                    <div class="profile-image-container mb-4">
+                        {% if profile.image %}
+                            <img src="{{ profile.image.url }}?v={{ user.last_login|date:'U' }}" alt="{{ current_name }}" class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg" id="profile-preview">
+                        {% else %}
+                            <div class="w-24 h-24 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-white font-bold text-2xl border-4 border-white shadow-lg" id="profile-preview">{{ current_initials }}</div>
+                        {% endif %}
+                        <div class="image-overlay" onclick="document.getElementById('image-input').click()">
+                            <i data-feather="camera" class="w-6 h-6 text-white"></i>
+                        </div>
+                    </div>
+                    <h2 class="text-xl font-bold text-white">{{ current_name|default:user.username }}</h2>
+                    <p class="text-white text-opacity-80">@{{ user.username }}</p>
+                    <div class="absolute top-4 right-4">
+                        <div class="w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
+                    </div>
+                </div>
+
+                <!-- Form Section -->
+                <div class="p-6">
+                    <form method="post" enctype="multipart/form-data" id="profile-form" class="space-y-6">
+                        {% csrf_token %}
+                        
+                        <!-- Name Field -->
+                        <div>
+                            <label class="flex items-center text-sm font-medium text-gray-700 mb-2">
+                                <i data-feather="user" class="w-4 h-4 mr-2"></i>
+                                Display Name
+                            </label>
+                            <div class="relative">
+                                <input type="text" 
+                                       name="{{ form.name.name }}" 
+                                       value="{{ form.name.value|default:'' }}"
+                                       placeholder="{{ current_name|default:user.username }}"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent input-focus transition-all duration-200 pl-12"
+                                       id="name-input">
+                                <i data-feather="user" class="w-5 h-5 absolute left-4 top-3.5 text-gray-400"></i>
+                            </div>
+                            {% if form.name.errors %}
+                                <div class="flex items-center mt-2 text-red-500 text-sm">
+                                    <i data-feather="alert-circle" class="w-4 h-4 mr-1"></i>
+                                    {{ form.name.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <p class="text-xs text-gray-500 mt-1">This is how others will see your name</p>
+                        </div>
+
+                        <!-- Profile Image Field -->
+                        <div>
+                            <label class="flex items-center text-sm font-medium text-gray-700 mb-2">
+                                <i data-feather="image" class="w-4 h-4 mr-2"></i>
+                                Profile Picture
+                            </label>
+                            <div class="relative">
+                                <input type="file" 
+                                       name="{{ form.image.name }}" 
+                                       accept="image/*"
+                                       class="hidden"
+                                       id="image-input">
+                                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors cursor-pointer" onclick="document.getElementById('image-input').click()">
+                                    <i data-feather="upload-cloud" class="w-8 h-8 text-gray-400 mx-auto mb-2"></i>
+                                    <p class="text-sm text-gray-600">Click to upload a new profile picture</p>
+                                    <p class="text-xs text-gray-400 mt-1">JPG, PNG up to 5MB</p>
+                                </div>
+                                <div id="file-selected" class="hidden mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <div class="flex items-center">
+                                        <i data-feather="file" class="w-4 h-4 text-blue-500 mr-2"></i>
+                                        <span class="text-sm text-blue-700" id="file-name"></span>
+                                        <button type="button" onclick="clearFile()" class="ml-auto text-blue-500 hover:text-blue-700">
+                                            <i data-feather="x" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% if form.image.errors %}
+                                <div class="flex items-center mt-2 text-red-500 text-sm">
+                                    <i data-feather="alert-circle" class="w-4 h-4 mr-1"></i>
+                                    {{ form.image.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Account Info -->
+                        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <h3 class="font-medium text-gray-900 mb-2 flex items-center">
+                                <i data-feather="info" class="w-4 h-4 mr-2"></i>
+                                Account Information
+                            </h3>
+                            <div class="space-y-2 text-sm text-gray-600">
+                                <div class="flex justify-between">
+                                    <span>Username:</span>
+                                    <span class="font-medium">{{ user.username }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Email:</span>
+                                    <span class="font-medium">{{ user.email|default:"Not provided" }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Joined:</span>
+                                    <span class="font-medium">{{ user.date_joined|date:"M d, Y" }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex flex-col space-y-3">
+                            <button type="submit" 
+                                    class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 shadow-lg"
+                                    id="save-btn">
+                                <div class="flex items-center justify-center">
+                                    <i data-feather="save" class="w-5 h-5 mr-2"></i>
+                                    Save Changes
+                                </div>
+                            </button>
+                            
+                            <a href="{% url 'chat' %}" 
+                               class="w-full bg-white text-gray-700 py-3 px-4 rounded-lg border border-gray-300 hover:bg-gray-50 transition-all duration-200 text-center inline-flex items-center justify-center transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                                <i data-feather="arrow-left" class="w-5 h-5 mr-2"></i>
+                                Back to Chat
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+           
+        </div>
+    </div>
+
+    <script>
+        // Initialize Feather icons
+        feather.replace();
+
+        // File input handling
+        const imageInput = document.getElementById('image-input');
+        const fileSelected = document.getElementById('file-selected');
+        const fileName = document.getElementById('file-name');
+        const profilePreview = document.getElementById('profile-preview');
+
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Show file selection
+                fileName.textContent = file.name;
+                fileSelected.classList.remove('hidden');
+                
+                // Preview image
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    if (profilePreview.tagName === 'IMG') {
+                        profilePreview.src = e.target.result;
+                    } else {
+                        // Replace div with img
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.alt = 'Profile Preview';
+                        img.className = 'w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg';
+                        img.id = 'profile-preview';
+                        profilePreview.parentNode.replaceChild(img, profilePreview);
+                    }
+                };
+                reader.readAsDataURL(file);
+                feather.replace();
+            }
+        });
+
+        function clearFile() {
+            imageInput.value = '';
+            fileSelected.classList.add('hidden');
+            // Reset preview if needed
+            location.reload(); // Simple way to reset preview
+        }
+
+        // Form submission
+        const form = document.getElementById('profile-form');
+        const saveBtn = document.getElementById('save-btn');
+        
+        form.addEventListener('submit', function() {
+            saveBtn.innerHTML = `
+                <div class="flex items-center justify-center">
+                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Saving...
+                </div>
+            `;
+            saveBtn.disabled = true;
+        });
+
+        // Auto-save draft functionality
+        const nameInput = document.getElementById('name-input');
+        let saveTimeout;
+
+        nameInput.addEventListener('input', function() {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                // Could save draft to localStorage here
+                console.log('Auto-saving draft...');
+            }, 1000);
+        });
+
+        // Show success message after form submission (if needed)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('saved') === 'true') {
+            // Show success notification
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i data-feather="check" class="w-4 h-4 mr-2"></i>
+                    Profile updated successfully!
+                </div>
+            `;
+            document.body.appendChild(notification);
+            feather.replace();
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

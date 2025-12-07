@@ -59,3 +59,48 @@ def chat_view(request):
     })
 def home(request):
     return render(request, 'home.html')
+@login_required
+def profile_view(request):
+    profile = request.user.profile
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            form.save()
+            return redirect('profile')
+    else:
+        form = ProfileForm(instance=profile)
+    current_name = profile.name or request.user.username
+    current_initials = current_name[:2].upper()
+    return render(request, 'profile.html', {
+        'form': form,
+        'profile': profile,
+        'current_name': current_name,
+        'current_initials': current_initials,
+    })
+
+@login_required
+def get_messages(request, room_name):
+    messages = Message.objects.filter(room=room_name).order_by('timestamp')
+    data = []
+    for msg in messages:
+        profile = msg.sender.profile
+        image_url = profile.image.url if profile.image else None
+        data.append({
+            'user': msg.sender.username,
+            'message': msg.content,
+            'time': msg.timestamp.strftime('%I:%M %p'),
+            'file': msg.file.url if msg.file else None,
+            'image': image_url,  # Add profile image URL
+        })
+    return JsonResponse(data, safe=False)
+
+@login_required
+@csrf_exempt
+def upload_file(request, room_name):
+    if request.method == 'POST':
+        file = request.FILES.get('file')
+        message = request.POST.get('message', '')
+        if file and file.size < 100 * 1024 * 1024:  # 100MB limit
+            message_obj = Message.objects.create(room=room_name, sender=request.user, content=message, file=file)
+            return JsonResponse({'status': 'ok', 'file_url': message_obj.file.url, 'message': message})
+    return JsonResponse({'status': 'error', 'message': 'Upload failed'}, status=400)
