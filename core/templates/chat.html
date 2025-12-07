@@ -1,0 +1,821 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Chat App</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <!-- Emoji Mart Library -->
+    <script src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>
+    <style>
+        /* Dark mode custom styles */
+        .dark {
+            color-scheme: dark;
+        }
+        .dark .bg-gray-100 { background-color: #1f2937; }
+        .dark .bg-white { background-color: #374151; }
+        .dark .bg-gray-50 { background-color: #4b5563; }
+        .dark .text-gray-900 { color: #f9fafb; }
+        .dark .text-gray-800 { color: #f3f4f6; }
+        .dark .text-gray-700 { color: #e5e7eb; }
+        .dark .text-gray-600 { color: #d1d5db; }
+        .dark .text-gray-500 { color: #9ca3af; }
+        .dark .text-gray-400 { color: #6b7280; }
+        .dark .border-gray-200 { border-color: #4b5563; }
+        .dark .border-gray-300 { border-color: #6b7280; }
+        .dark .border-gray-100 { border-color: #374151; }
+        .dark .hover\:bg-gray-50:hover { background-color: #4b5563; }
+        .dark .hover\:bg-gray-100:hover { background-color: #6b7280; }
+        .dark .hover\:bg-gray-200:hover { background-color: #9ca3af; }
+        .dark .bg-blue-50 { background-color: #1e3a8a; }
+        .dark .hover\:bg-red-50:hover { background-color: #7f1d1d; }
+        .dark .bg-yellow-100 { background-color: #92400e; }
+        
+        /* Theme toggle switch */
+        .theme-switch {
+            position: relative;
+            display: inline-block;
+            width: 32px;
+            height: 16px;
+        }
+        .theme-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .theme-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .theme-slider:before {
+            position: absolute;
+            content: "";
+            height: 12px;
+            width: 12px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .theme-slider {
+            background-color: #2196F3;
+        }
+        input:checked + .theme-slider:before {
+            transform: translateX(16px);
+        }
+        .dark .theme-slider {
+            background-color: #4b5563;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 overflow-hidden transition-colors duration-300">
+    {% csrf_token %}
+    <div class="flex h-screen relative">
+        <!-- Mobile overlay -->
+        <div id="mobile-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden"></div>
+        
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-full sm:w-80 lg:w-1/4 bg-white border-r border-gray-200 flex flex-col absolute lg:relative z-50 h-full transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+            <!-- Sidebar Header -->
+            <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                <h1 class="text-xl font-bold text-gray-800">Chat App</h1>
+                <div class="flex items-center space-x-2">
+                    <button class="p-2 rounded-full hover:bg-gray-100">
+                        <i data-feather="plus" class="w-5 h-5"></i>
+                    </button>
+                    <!-- Mobile close button -->
+                    <button id="close-sidebar" class="p-2 rounded-full hover:bg-gray-100 lg:hidden">
+                        <i data-feather="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="p-4 border-b border-gray-200">
+                <div class="relative">
+                    <input type="text" id="search-input" placeholder="Search Contacts..." class="w-full p-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white text-gray-800">
+                    <i data-feather="search" class="w-4 h-4 absolute left-3 top-3 text-gray-400"></i>
+                </div>
+            </div>
+            
+            <!-- Chat List -->
+        <div class="flex-1 overflow-y-auto">
+    {% for user in users %}
+        {% with u_profile=user.profile u_name=u_profile.name|default:user.username u_initials=u_name|slice:":2"|upper latest_msg=u_profile.latest_message|default:"Say hi to start chatting!" %}
+            <div class="p-4 border-b border-gray-200 hover:bg-gray-50 cursor-pointer chat-item" data-chat="{{ user.username }}" data-name="{{ u_name }}" data-initials="{{ u_initials }}">
+                <div class="flex items-center">
+                    <div class="relative">
+                        {% if u_profile.image and u_profile.image.url|length > 0 %}
+                            <img src="{{ u_profile.image.url }}?v={{ user.last_login|date:'U' }}" alt="{{ u_name }}" class="w-12 h-12 rounded-full object-cover" title="Image URL: {{ u_profile.image.url }}" data-image="{{ u_profile.image.url }}">
+                        {% else %}
+                            <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold" title="No image: {% if u_profile.image %}{{ u_profile.image.url|default:'None' }}{% else %}None{% endif %}" data-image="">{{ u_initials }}</div>
+                        {% endif %}
+                        <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                    </div>
+                    <div class="ml-3 flex-1 min-w-0">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-medium text-gray-900 truncate">{{ u_name }}</h3>
+                            <div class="text-xs text-gray-500 ml-2">2m</div>
+                        </div>
+                        <p class="text-sm text-gray-600 truncate message-preview">{{ latest_msg }}</p>
+                    </div>
+                </div>
+            </div>
+        {% endwith %}
+    {% empty %}
+        <p class="p-4 text-gray-500">No other users yet.</p>
+    {% endfor %}
+</div>
+            <!-- User Profile -->
+            <div class="p-4 border-t border-gray-200 bg-gray-50 relative">
+                <div class="flex items-center cursor-pointer" id="user-profile-btn">
+                    {% if profile.image %}
+                        <img src="{{ profile.image.url }}?v={{ user.last_login|date:'U' }}" alt="{{ current_name }}" class="w-10 h-10 rounded-full object-cover">
+                    {% else %}
+                        <div class="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">{{ current_initials }}</div>
+                    {% endif %}
+                    <div class="ml-3 flex-1 min-w-0">
+                        <h3 class="font-medium text-gray-900 truncate">{{ current_name }}</h3>
+                        <p class="text-sm text-green-600">Online</p>
+                    </div>
+                    <button class="p-2 rounded-full hover:bg-gray-200 transition-colors">
+                        <i data-feather="chevron-up" class="w-5 h-5 transition-transform duration-200" id="user-profile-icon"></i>
+                    </button>
+                </div>
+
+                <!-- User Profile Dropdown -->
+                <div id="user-profile-dropdown" class="absolute bottom-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mb-2 hidden z-10">
+                    <div class="p-2">
+                        <!-- Profile Header -->
+                        <div class="flex items-center p-3 border-b border-gray-100">
+                           {% if profile.image %}
+                                <img src="{{ profile.image.url }}?v={{ user.last_login|date:'U' }}" alt="{{ current_name }}" class="w-12 h-12 rounded-full object-cover">
+                            {% else %}
+                                <div class="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">{{ current_initials }}</div>
+                            {% endif %}
+                            <div class="ml-3">
+                                <h3 class="font-medium text-gray-900">{{ current_name }}</h3>
+                                <p class="text-sm text-gray-500">{{ user.email }}</p>
+                                <p class="text-xs text-green-600 flex items-center mt-1">
+                                    <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                                    Online
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Menu Items -->
+                        <div class="py-2">
+                            <button class="w-full flex items-center px-3 py-2 text-left hover:bg-gray-50 rounded-md transition-colors group profile-menu-item" data-action="view-profile">
+                                <i data-feather="user" class="w-4 h-4 text-gray-500 group-hover:text-gray-700"></i>
+                                <span class="ml-3 text-sm text-gray-700 group-hover:text-gray-900">View Profile</span>
+                            </button>
+                            
+                            
+                          
+                            <button class="w-full flex items-center px-3 py-2 text-left hover:bg-gray-50 rounded-md transition-colors group" id="dark-mode-toggle">
+                                <i data-feather="moon" class="w-4 h-4 text-gray-500 group-hover:text-gray-700" id="theme-icon"></i>
+                                <span class="ml-3 text-sm text-gray-700 group-hover:text-gray-900" id="theme-text">Dark Mode</span>
+                                <div class="ml-auto">
+                                    <label class="theme-switch">
+                                        <input type="checkbox" id="theme-checkbox">
+                                        <span class="theme-slider"></span>
+                                    </label>
+                                </div>
+                            </button>
+
+                          
+                            
+                          
+                            
+                            <hr class="my-2 border-gray-200">
+                            
+                            <button class="w-full flex items-center px-3 py-2 text-left hover:bg-red-50 rounded-md transition-colors group profile-menu-item" data-action="sign-out">
+                                <i data-feather="log-out" class="w-4 h-4 text-red-500 group-hover:text-red-600"></i>
+                                <span class="ml-3 text-sm text-red-600 group-hover:text-red-700">Sign Out</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="flex-1 flex flex-col min-w-0">
+            <!-- Chat Header -->
+            <div class="p-4 border-b border-gray-200 bg-white flex items-center" id="chat-header">
+                <!-- Mobile menu button -->
+                <button id="mobile-menu-btn" class="p-2 rounded-full hover:bg-gray-100 lg:hidden mr-3">
+                    <i data-feather="menu" class="w-5 h-5"></i>
+                </button>
+                
+                <div id="chat-header-avatar" class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold"></div>
+                <div class="ml-3 flex-1 min-w-0">
+                    <h3 id="chat-header-name" class="font-medium text-gray-900 truncate">Select a chat</h3>
+                    <p id="chat-header-status" class="text-sm text-green-600">Online</p>
+                </div>
+            </div>
+
+            <!-- Messages Container -->
+            <div class="flex-1 overflow-y-auto bg-gray-50 p-4" id="messages-container">
+                <div class="space-y-4 max-w-4xl mx-auto" id="messages-space">
+                    <p class="text-center text-gray-500">Select a user to start chatting</p>
+                </div>
+            </div>
+
+            <!-- Message Input -->
+            <div class="p-4 border-t border-gray-200 bg-white">
+                <div class="flex items-center space-x-3 max-w-4xl mx-auto">
+                    <button class="p-2 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0" id="file-btn">
+                        <i data-feather="paperclip" class="w-5 h-5"></i>
+                    </button>
+                    <input type="file" id="file-input" accept="image/*,application/pdf,.doc,.docx" style="display: none;" multiple>
+                    <div class="flex-1 relative">
+                        <input type="text" id="message-input" placeholder="Type a message..." class="w-full p-3 pr-32 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white text-gray-800">
+                        <button class="absolute right-16 top-1/2 transform -translate-y-1/2 p-2 rounded-full hover:bg-gray-100 transition-colors hidden sm:block" id="emoji-btn">
+                            <i data-feather="smile" class="w-4 h-4 text-gray-400"></i>
+                        </button>
+                        <!-- Emoji Picker Container -->
+                        <div id="picker-container" class="absolute right-2 bottom-full mb-2 z-50" style="display: none;"></div>
+                    </div>
+                    <button id="send-btn" class="p-2 rounded-full bg-blue-500 hover:bg-blue-600 transition-colors text-white flex-shrink-0">
+                        <i data-feather="send" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notification-toast" class="fixed top-4 right-4 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-50 hidden transform translate-x-full transition-transform duration-300">
+        <div class="flex items-center">
+            <i data-feather="info" class="w-5 h-5 text-blue-500 mr-3"></i>
+            <span id="toast-message" class="text-sm text-gray-700"></span>
+        </div>
+    </div>
+
+    <script>
+        // Django context
+        const currentUser = "{{ user.username }}";
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        // Initialize AOS and Feather icons
+        AOS.init({ duration: 300, once: true });
+        feather.replace();
+
+        // Dark Mode System
+        class ThemeManager {
+            constructor() {
+                this.theme = localStorage.getItem('theme') || 'light';
+                this.themeCheckbox = document.getElementById('theme-checkbox');
+                this.themeIcon = document.getElementById('theme-icon');
+                this.themeText = document.getElementById('theme-text');
+                this.init();
+            }
+
+            init() {
+                this.applyTheme();
+                this.updateUI();
+                this.themeCheckbox.checked = this.theme === 'dark';
+                this.themeCheckbox.addEventListener('change', () => this.toggleTheme());
+            }
+
+            toggleTheme() {
+                this.theme = this.theme === 'light' ? 'dark' : 'light';
+                this.applyTheme();
+                this.updateUI();
+                localStorage.setItem('theme', this.theme);
+                this.showNotification(`Switched to ${this.theme} mode`);
+            }
+
+            applyTheme() {
+                if (this.theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                    document.body.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    document.body.classList.remove('dark');
+                }
+            }
+
+            updateUI() {
+                if (this.theme === 'dark') {
+                    this.themeIcon.setAttribute('data-feather', 'sun');
+                    this.themeText.textContent = 'Light Mode';
+                } else {
+                    this.themeIcon.setAttribute('data-feather', 'moon');
+                    this.themeText.textContent = 'Dark Mode';
+                }
+                feather.replace();
+            }
+
+            showNotification(message) {
+                const toast = document.getElementById('notification-toast');
+                const toastMessage = document.getElementById('toast-message');
+                toastMessage.textContent = message;
+                toast.classList.remove('hidden', 'translate-x-full');
+                setTimeout(() => {
+                    toast.classList.add('translate-x-full');
+                    setTimeout(() => toast.classList.add('hidden'), 300);
+                }, 2000);
+            }
+        }
+
+        // Initialize theme manager
+        const themeManager = new ThemeManager();
+
+        // Show notification function
+        function showNotification(message, type = 'info') {
+            const toast = document.getElementById('notification-toast');
+            const toastMessage = document.getElementById('toast-message');
+            const icon = toast.querySelector('i');
+            
+            // Update icon based on type
+            icon.setAttribute('data-feather', type === 'error' ? 'alert-circle' : 'info');
+            icon.className = `w-5 h-5 mr-3 ${type === 'error' ? 'text-red-500' : 'text-blue-500'}`;
+            feather.replace();
+            
+            toastMessage.textContent = message;
+            toast.classList.remove('hidden', 'translate-x-full');
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => toast.classList.add('hidden'), 300);
+            }, 3000);
+        }
+
+        // Mobile sidebar functionality
+        const sidebar = document.getElementById('sidebar');
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const closeSidebarBtn = document.getElementById('close-sidebar');
+        const mobileOverlay = document.getElementById('mobile-overlay');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        function openSidebar() {
+            sidebar.classList.remove('-translate-x-full');
+            mobileOverlay.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebar() {
+            sidebar.classList.add('-translate-x-full');
+            mobileOverlay.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        mobileMenuBtn.addEventListener('click', openSidebar);
+        closeSidebarBtn.addEventListener('click', closeSidebar);
+        mobileOverlay.addEventListener('click', closeSidebar);
+
+        // Search functionality
+        const searchInput = document.getElementById('search-input');
+        const chatItems = document.querySelectorAll('.chat-item');
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            chatItems.forEach(item => {
+                const name = item.querySelector('h3').textContent.toLowerCase();
+                item.style.display = name.includes(term) ? 'block' : 'none';
+            });
+        });
+
+        // Chat item selection
+        let currentRoom = null;
+        let chatSocket = null;
+        let typingTimeout = null;
+        messageInput.disabled = true;
+        sendBtn.disabled = true;
+
+        chatItems.forEach(item => {
+            item.addEventListener('click', () => {
+                console.log('Chat item clicked:', item.dataset.chat);
+                chatItems.forEach(i => i.classList.remove('active', 'bg-blue-50', 'border-l-4', 'border-l-blue-500'));
+                item.classList.add('active', 'bg-blue-50', 'border-l-4', 'border-l-blue-500');
+                    const selectedUser = item.dataset.chat;
+                    const selectedName = item.dataset.name || 'Unknown'; // Fallback if name is missing
+                    const selectedInitials = item.dataset.initials || selectedName.slice(0, 2).toUpperCase(); // Fallback initials
+                    const selectedImage = item.dataset.image || ''; // Ensure it's a string, default to empty
+
+                    // Update chat header
+                    const avatarDiv = document.getElementById('chat-header-avatar');
+                    const nameEl = document.getElementById('chat-header-name');
+                    const statusEl = document.getElementById('chat-header-status');
+                    nameEl.textContent = selectedName;
+                    statusEl.textContent = 'Online';
+
+                    if (selectedImage && selectedImage.trim().length > 0) {
+                        avatarDiv.innerHTML = `<img src="${selectedImage}" alt="${selectedName}'s profile" class="w-10 h-10 rounded-full object-cover">`;
+                    } else {
+                        avatarDiv.innerHTML = selectedInitials;
+                        avatarDiv.className = 'w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold';
+                    }
+
+                // Set room name
+                currentRoom = [currentUser, selectedUser].sort().join('_');
+                console.log('Current room set:', currentRoom);
+
+                // Disconnect old socket
+                if (chatSocket) {
+                    chatSocket.close();
+                }
+
+                // Connect to new room WebSocket
+                const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+                chatSocket = new WebSocket(`${protocol}${window.location.host}/ws/chat/${currentRoom}/`);
+                chatSocket.onopen = function() {
+                    console.log('WebSocket connected to room:', currentRoom);
+                    messageInput.disabled = false;
+                    sendBtn.disabled = false;
+                };
+                chatSocket.onmessage = function(e) {
+                    const data = JSON.parse(e.data);
+                    if (data.user === currentUser) return;
+                    if ('typing' in data) {
+                        const statusEl = document.getElementById('chat-header-status');
+                        statusEl.textContent = data.typing ? 'Typing...' : 'Online';
+                        return;
+                    }
+                    if ('status' in data) {
+                        const statusEl = document.getElementById('chat-header-status');
+                        statusEl.textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+                        const dot = document.querySelector(`[data-chat="${data.user}"] .rounded-full`).classList;
+                        if (data.status === 'offline') {
+                            dot.add('bg-gray-400');
+                            dot.remove('bg-green-500');
+                        } else {
+                            dot.add('bg-green-500');
+                            dot.remove('bg-gray-400');
+                        }
+                        return;
+                    }
+                    console.log('Received message:', data);
+                    handleIncomingMessage(data);
+                };
+                chatSocket.onclose = function(e) {
+                    console.error('WebSocket closed:', e);
+                    messageInput.disabled = true;
+                    sendBtn.disabled = true;
+                    showNotification('Chat connection lost. Reconnecting...', 'error');
+                    setTimeout(() => {
+                        console.log('Attempting to reconnect...');
+                        chatSocket = new WebSocket(`${protocol}${window.location.host}/ws/chat/${currentRoom}/`);
+                    }, 3000);
+                };
+                chatSocket.onerror = function(e) {
+                    console.error('WebSocket error:', e);
+                    showNotification('Error connecting to chat server. Please try again.', 'error');
+                };
+
+                // Load message history
+                fetch(`/api/messages/${currentRoom}/`)
+                    .then(response => response.json())
+                    .then(messages => loadMessages(messages))
+                    .catch(error => console.error('Error loading messages:', error));
+
+                // Close sidebar on mobile
+                if (window.innerWidth < 1024) {
+                    closeSidebar();
+                }
+            });
+        });
+
+       function loadMessages(messages) {
+    const space = document.getElementById('messages-space');
+    space.innerHTML = '<div class="flex justify-center"><span class="bg-white px-3 py-1 rounded-full text-xs text-gray-500 shadow-sm">Today</span></div>';
+    messages.forEach(msg => {
+        const isOwn = msg.user === currentUser;
+        const messageDiv = document.createElement('div');
+        const initials = msg.user.slice(0, 2).toUpperCase();
+        if (!isOwn) {
+            messageDiv.className = 'flex items-start space-x-3';
+            if (msg.file) {
+                messageDiv.innerHTML = `
+                    <div class="w-8 h-8 rounded-full flex-shrink-0">
+                        ${msg.image ? `<img src="${msg.image}" alt="${msg.user}" class="w-8 h-8 rounded-full object-cover">` : 
+                        `<div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">${initials}</div>`}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="bg-white p-3 rounded-2xl rounded-tl-md shadow-sm max-w-xs sm:max-w-sm lg:max-w-md">
+                            <p class="text-gray-800">${msg.message}</p>
+                            <a href="${msg.file}" target="_blank" class="text-blue-500 mt-1 block">📎 Download File</a>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1 ml-1">${msg.time}</p>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="w-8 h-8 rounded-full flex-shrink-0">
+                        ${msg.image ? `<img src="${msg.image}" alt="${msg.user}" class="w-8 h-8 rounded-full object-cover">` : 
+                        `<div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">${initials}</div>`}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="bg-white p-3 rounded-2xl rounded-tl-md shadow-sm max-w-xs sm:max-w-sm lg:max-w-md">
+                            <p class="text-gray-800">${msg.message}</p>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1 ml-1">${msg.time}</p>
+                    </div>
+                `;
+            }
+        } else {
+            messageDiv.className = 'flex items-start justify-end space-x-3';
+            if (msg.file) {
+                messageDiv.innerHTML = `
+                    <div class="flex-1 min-w-0 flex flex-col items-end">
+                        <div class="bg-blue-500 text-white p-3 rounded-2xl rounded-tr-md shadow-sm max-w-xs sm:max-w-sm lg:max-w-md">
+                            <p>${msg.message}</p>
+                            <a href="${msg.file}" target="_blank" class="text-white mt-1 block">📎 Your File</a>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1 mr-1">${msg.time}</p>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="flex-1 min-w-0 flex flex-col items-end">
+                        <div class="bg-blue-500 text-white p-3 rounded-2xl rounded-tr-md shadow-sm max-w-xs sm:max-w-sm lg:max-w-md">
+                            <p>${msg.message}</p>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1 mr-1">${msg.time}</p>
+                    </div>
+                `;
+            }
+        }
+        space.appendChild(messageDiv);
+    });
+    document.getElementById('messages-container').scrollTop = document.getElementById('messages-container').scrollHeight;
+}
+
+function handleIncomingMessage(data) {
+    const space = document.getElementById('messages-space');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'flex items-start space-x-3';
+    const initials = data.user.slice(0, 2).toUpperCase();
+    const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    if (data.file) {
+        messageDiv.innerHTML = `
+            <div class="w-8 h-8 rounded-full flex-shrink-0">
+                ${data.image ? `<img src="${data.image}" alt="${data.user}" class="w-8 h-8 rounded-full object-cover">` : 
+                `<div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">${initials}</div>`}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="bg-white p-3 rounded-2xl rounded-tl-md shadow-sm max-w-xs sm:max-w-sm lg:max-w-md">
+                    <p class="text-gray-800">${data.message}</p>
+                    <a href="${data.file}" target="_blank" class="text-blue-500 mt-1 block">📎 Download File</a>
+                </div>
+                <p class="text-xs text-gray-500 mt-1 ml-1">${time}</p>
+            </div>
+        `;
+    } else {
+        messageDiv.innerHTML = `
+            <div class="w-8 h-8 rounded-full flex-shrink-0">
+                ${data.image ? `<img src="${data.image}" alt="${data.user}" class="w-8 h-8 rounded-full object-cover">` : 
+                `<div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">${initials}</div>`}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="bg-white p-3 rounded-2xl rounded-tl-md shadow-sm max-w-xs sm:max-w-sm lg:max-w-md">
+                    <p class="text-gray-800">${data.message}</p>
+                </div>
+                <p class="text-xs text-gray-500 mt-1 ml-1">${time}</p>
+            </div>
+        `;
+    }
+    space.appendChild(messageDiv);
+    document.getElementById('messages-container').scrollTop = document.getElementById('messages-container').scrollHeight;
+
+    // Notification: Flash chat item and play sound
+    const chatItem = document.querySelector(`[data-chat="${data.user}"]`);
+    if (chatItem) {
+        chatItem.classList.add('bg-yellow-100');
+        setTimeout(() => chatItem.classList.remove('bg-yellow-100'), 1000);
+    }
+    new Audio('/static/notification.mp3').play().catch(e => console.log('Sound play failed:', e));
+
+    // Update message preview
+    const preview = chatItem.querySelector('.message-preview');
+    if (preview) {
+        preview.textContent = data.message.slice(0, 30) + (data.message.length > 30 ? '...' : '');
+    }
+}
+
+        function sendMessage() {
+            console.log('sendMessage called, currentRoom:', currentRoom);
+            if (!currentRoom) {
+                alert('Please select a user to start chatting.');
+                return;
+            }
+            const messageInput = document.getElementById('message-input');
+            const message = messageInput.value.trim();
+            if (message === '') {
+                console.warn('Empty message ignored');
+                return;
+            }
+
+            // Optimistic UI update
+            const space = document.getElementById('messages-space');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex items-start justify-end space-x-3';
+            const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            messageDiv.innerHTML = `
+                <div class="flex-1 min-w-0 flex flex-col items-end">
+                    <div class="bg-blue-500 text-white p-3 rounded-2xl rounded-tr-md shadow-sm max-w-xs sm:max-w-sm lg:max-w-md">
+                        <p>${message}</p>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1 mr-1">${time}</p>
+                </div>
+            `;
+            space.appendChild(messageDiv);
+            document.getElementById('messages-container').scrollTop = document.getElementById('messages-container').scrollHeight;
+
+            // Send via WebSocket
+            if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                console.log('Sending message via WebSocket:', message);
+                chatSocket.send(JSON.stringify({
+                    'message': message
+                }));
+            } else {
+                console.error('WebSocket not connected. ReadyState:', chatSocket ? chatSocket.readyState : 'undefined');
+            }
+
+            messageInput.value = '';
+        }
+
+        // Typing indicator
+        messageInput.addEventListener('input', () => {
+            if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                chatSocket.send(JSON.stringify({ 'typing': true }));
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => {
+                    chatSocket.send(JSON.stringify({ 'typing': false }));
+                }, 2000);
+            }
+        });
+
+        // File upload
+        const fileBtn = document.getElementById('file-btn');
+        const fileInput = document.getElementById('file-input');
+        fileBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && file.size < 100 * 1024 * 1024) {  // 100MB
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('message', messageInput.value || '');
+                fetch(`/api/upload/${currentRoom}/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        // Optimistic UI update for file message
+                        const space = document.getElementById('messages-space');
+                        const messageDiv = document.createElement('div');
+                        messageDiv.className = 'flex items-start justify-end space-x-3';
+                        const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                        messageDiv.innerHTML = `
+                            <div class="flex-1 min-w-0 flex flex-col items-end">
+                                <div class="bg-blue-500 text-white p-3 rounded-2xl rounded-tr-md shadow-sm max-w-xs sm:max-w-sm lg:max-w-md">
+                                    <p>${data.message}</p>
+                                    <a href="${data.file_url}" target="_blank" class="text-white mt-1 block">📎 Your File</a>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1 mr-1">${time}</p>
+                            </div>
+                        `;
+                        space.appendChild(messageDiv);
+                        document.getElementById('messages-container').scrollTop = document.getElementById('messages-container').scrollHeight;
+
+                        // Broadcast via WebSocket
+                        chatSocket.send(JSON.stringify({
+                            'message': data.message || 'File shared',
+                            'file': data.file_url
+                        }));
+                        messageInput.value = '';
+                    }
+                })
+                .catch(error => console.error('File upload error:', error));
+            } else {
+                alert('File too large (max 100MB)');
+            }
+        });
+
+        // Emoji Mart Picker Setup
+        const picker = new EmojiMart.Picker({
+            onEmojiSelect: (emoji) => {
+                const input = document.getElementById("message-input");
+                input.value += emoji.native; // append emoji to input
+                pickerContainer.style.display = "none"; // auto-hide after selection
+                input.focus(); // focus back to input
+            },
+            previewPosition: "none",
+            skinTonePosition: "search"
+        });
+
+        const pickerContainer = document.getElementById("picker-container");
+        pickerContainer.appendChild(picker);
+
+        const emojiBtn = document.getElementById("emoji-btn");
+
+        // Toggle picker on button click
+        emojiBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            if (pickerContainer.style.display === "none" || pickerContainer.style.display === "") {
+                pickerContainer.style.display = "block";
+            } else {
+                pickerContainer.style.display = "none";
+            }
+        });
+
+        // Hide when clicking outside
+        document.addEventListener("click", (e) => {
+            if (!emojiBtn.contains(e.target) && !pickerContainer.contains(e.target)) {
+                pickerContainer.style.display = "none";
+            }
+        });
+
+        document.getElementById('message-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                console.log('Enter key pressed');
+                sendMessage();
+            }
+        });
+
+        document.getElementById('send-btn').addEventListener('click', function() {
+            console.log('Send button clicked');
+            sendMessage();
+        });
+
+        // Auto-scroll to bottom on window resize
+        window.addEventListener('resize', () => {
+            const messagesContainer = document.getElementById('messages-container');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        });
+
+        // User Profile dropdown functionality
+        const userProfileBtn = document.getElementById('user-profile-btn');
+        const userProfileDropdown = document.getElementById('user-profile-dropdown');
+        const userProfileIcon = document.getElementById('user-profile-icon');
+
+        function toggleUserProfile() {
+            const isHidden = userProfileDropdown.classList.contains('hidden');
+            if (isHidden) {
+                userProfileDropdown.classList.remove('hidden');
+                userProfileIcon.style.transform = 'rotate(180deg)';
+            } else {
+                userProfileDropdown.classList.add('hidden');
+                userProfileIcon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        userProfileBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleUserProfile();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!userProfileBtn.contains(e.target) && !userProfileDropdown.contains(e.target)) {
+                userProfileDropdown.classList.add('hidden');
+                userProfileIcon.style.transform = 'rotate(0deg)';
+            }
+        });
+
+        userProfileDropdown.addEventListener('click', (e) => {
+            const button = e.target.closest('.profile-menu-item');
+            if (!button) return;
+
+            const action = button.dataset.action;
+            switch (action) {
+                case 'view-profile':
+                    window.location.href = "{% url 'profile' %}";
+                    break;
+                case 'sign-out':
+                    if (confirm('Are you sure you want to sign out?')) {
+                        fetch("{% url 'logout' %}", {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': csrfToken
+                            }
+                        }).then(response => {
+                            if (response.redirected) {
+                                window.location.href = response.url;
+                            }
+                        }).catch(error => console.error('Logout error:', error));
+                    }
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>
