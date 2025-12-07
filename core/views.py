@@ -57,3 +57,5 @@ def chat_view(request):
         'current_initials': current_initials,
         'user': request.user,
     })
+def home(request):
+    return render(request, 'home.html')
